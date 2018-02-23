@@ -1,0 +1,53 @@
+{
+  "name": "spotify-sxsw",
+  "description":
+    "Find out which artists in your Spotify library are performing at SXSW.",
+  "version": "1.0.0",
+  "license": "MIT",
+  "dependencies": {
+    "async": "^2.6.0",
+    "compression": "^1.7.1",
+    "express": "^4.16.2",
+    "express-session": "^1.15.6",
+    "node-html-parser": "^1.1.6",
+    "passport": "^0.4.0",
+    "passport-spotify": "^0.3.1",
+    "react-app-rewired": "^1.4.0",
+    "request": "^2.83.0",
+    "session-memory-store": "^0.2.2"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.6.x",
+    "babel-preset-env": "^1.6.1",
+    "babel-watch": "^2.0.7",
+    "concurrently": "^3.5.1",
+    "react": "^16.2.0",
+    "react-dom": "^16.2.0",
+    "react-ga": "^2.4.1",
+    "react-scripts": "1.0.17",
+    "styled-components": "^2.4.0"
+  },
+  "proxy": {
+    "/": {
+      "target": "http://localhost:8081",
+      "pathRewrite": {
+        "^/proxy": ""
+      },
+      "changeOrigin": true
+    }
+  },
+  "scripts": {
+    "build":
+      "react-app-rewired build && cp ./.env.prod.json ./build && NODE_ENV=production npx babel --out-file ./build/server.js < ./src/server.js --presets=env",
+    "deploy":
+      "yarn build && now -e NODE_ENV=\"production\" && now alias && now scale spotify-sxsw.now.sh 1 1",
+    "now-build": "true",
+    "now-start": "PORT=8081 NODE_ENV=production node build/server.js",
+    "server": "PORT=8081 babel-watch ./src/server.js",
+    "start": "concurrently \"react-scripts start\" \"yarn server\""
+  },
+  "babel": {
+    "presets": ["env"]
+  }
+}
