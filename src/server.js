@@ -54,45 +54,134 @@ app.use(
 );
 app.enable("trust proxy");
 
+const alphabet = [
+  "#",
+  "A",
+  "B",
+  "C",
+  "D",
+  "E",
+  "F",
+  "G",
+  "H",
+  "I",
+  "J",
+  "K",
+  "L",
+  "M",
+  "N",
+  "O",
+  "P",
+  "Q",
+  "R",
+  "S",
+  "T",
+  "U",
+  "V",
+  "W",
+  "X",
+  "Y",
+  "Z"
+];
 let sxswArtists = [];
 const getSXSW = () => {
-  request(
-    {
-      url: `https://schedule.sxsw.com/${year}/artists`,
-      headers: {
-        Accept: "application/json"
-      }
+  let newSXSWArtists = [];
+  let k = 0;
+  whilst(
+    function() {
+      return k < alphabet.length;
     },
-    (err, response) => {
-      if (!err && response.statusCode === 200) {
-        const responseArtists = [].concat.apply(
-          [],
-          Object.values(JSON.parse(response.body))
-        );
-        let newSXSWArtists = [];
-        for (let i = 0; i < responseArtists.length; i++) {
-          if (responseArtists[i].spotify_url !== null) {
-            let artist = responseArtists[i];
-            let spotifyUrl = artist.spotify_url;
-            artist.spotifyId = spotifyUrl.substring(
-              spotifyUrl.lastIndexOf("/") + 1,
-              spotifyUrl.length
+    function(next) {
+      let callbackCalled = false;
+      const fallbackTimer = setTimeout(function() {
+        k = k + 1;
+        callbackCalled = true;
+        next();
+      }, 5000);
+
+      request(
+        {
+          url: `https://schedule.sxsw.com/${year}/artists/alpha/${alphabet[k]}`
+        },
+        (err, response, body) => {
+          if (!err && response.statusCode === 200) {
+            const artistsPage = parse(body).querySelectorAll(
+              ".single-event h4"
             );
-            newSXSWArtists.push(artist);
+
+            for (let i = 0; i < artistsPage.length; i++) {
+              let sxsw_id = artistsPage[i].childNodes[0].rawAttrs
+                .replace('"', "")
+                .replace('"', "")
+                .split("/")[
+                artistsPage[i].childNodes[0].rawAttrs.split("/").length - 1
+              ];
+              let artistLink = artistsPage[i].childNodes[0].rawAttrs
+                .replace('href="', "https://schedule.sxsw.com")
+                .replace('"', "");
+
+              request(
+                {
+                  url: artistLink
+                },
+                (err2, response2, body2) => {
+                  if (
+                    !err2 &&
+                    response2.statusCode === 200 &&
+                    body2 &&
+                    body2.includes("https://open.spotify.com/artist/")
+                  ) {
+                    let artistPage = body2
+                      .split("https://open.spotify.com/artist/")[1]
+                      .split('"')[0];
+                    if (artistPage.includes("?")) {
+                      artistPage = artistPage.split("?")[0];
+                    }
+                    if (artistPage.includes("%")) {
+                      artistPage = artistPage.split("%")[0];
+                    }
+
+                    newSXSWArtists.push({
+                      spotify_id: artistPage,
+                      spotify_url: `https://open.spotify.com/artist/${artistPage}`,
+                      sxsw_id
+                    });
+                  }
+                }
+              );
+            }
+          }
+          k = k + 1;
+          clearTimeout(fallbackTimer);
+          if (callbackCalled === false) {
+            next();
           }
         }
+      );
+    },
+    function(err) {
+      // Update artist SXSW list
+      newSXSWArtists = newSXSWArtists.filter((obj, pos, arr) => {
+        return (
+          arr.map(mapObj => mapObj["spotify_id"]).indexOf(obj["spotify_id"]) ===
+          pos
+        );
+      });
 
-        if (newSXSWArtists.length > 0) {
-          sxswArtists = newSXSWArtists;
-        }
+      if (
+        newSXSWArtists.length > 0 &&
+        sxswArtists.length !== newSXSWArtists.length
+      ) {
+        sxswArtists = newSXSWArtists;
       }
     }
   );
 };
+
 getSXSW();
 setInterval(() => {
   getSXSW();
-}, 300000);
+}, 600000);
 
 if (process.env.NODE_ENV === "production") {
   app.use((req, res, next) => {
@@ -223,30 +312,32 @@ app.get("/auth/spotify/artists", ensureAuthenticated, function(req, res) {
     },
     function(err) {
       // Get artists from tracks
+      let uniqueArtists = [];
+      let uniqueArtistsIds = [];
       for (let i = 0; i < tracks.length; i++) {
         for (let j = 0; j < tracks[i].track.artists.length; j++) {
-          artists.push(tracks[i].track.artists[j].id);
+          uniqueArtists.push(tracks[i].track.artists[j]);
         }
       }
 
-      // Remove duplicate artists
-      let seen = {};
-      let uniqueArtists = [];
-      let k = 0;
-      for (let l = 0; l < artists.length; l++) {
-        let item = artists[l];
-        if (seen[item] !== 1) {
-          seen[item] = 1;
-          uniqueArtists[k++] = item;
-        }
+      uniqueArtists = uniqueArtists.filter((obj, pos, arr) => {
+        return arr.map(mapObj => mapObj["id"]).indexOf(obj["id"]) === pos;
+      });
+
+      for (let z = 0; z < uniqueArtists.length; z++) {
+        uniqueArtistsIds.push(uniqueArtists[z].id);
       }
 
       // Find artists at SXSW
       let yourSXSWArtists = [];
       for (let m in sxswArtists) {
-        if (uniqueArtists.indexOf(sxswArtists[m].spotifyId) > -1) {
+        if (uniqueArtistsIds.indexOf(sxswArtists[m].spotify_id) > -1) {
           let foundArtist = sxswArtists[m];
-          foundArtist.sxsw_id = foundArtist.id;
+          foundArtist.name =
+            uniqueArtists[
+              uniqueArtistsIds.indexOf(sxswArtists[m].spotify_id)
+            ].name;
+          foundArtist.id = sxswArtists[m].spotify_id;
           foundArtist.tracks = [];
           yourSXSWArtists.push(foundArtist);
         }
@@ -259,7 +350,7 @@ app.get("/auth/spotify/artists", ensureAuthenticated, function(req, res) {
         for (let o in yourSXSWArtists) {
           for (let p in tracks[n].track.artists) {
             if (
-              yourSXSWArtists[o].spotifyId === tracks[n].track.artists[p].id
+              yourSXSWArtists[o].spotify_id === tracks[n].track.artists[p].id
             ) {
               track = tracks[n].track;
               track.link = tracks[n].track.external_urls.spotify;
@@ -332,7 +423,7 @@ app.get("/concerts/:ids", ensureAuthenticated, function(req, res) {
                 return {
                   date: details[0].childNodes[0].rawText,
                   link: event[0].childNodes[0].rawAttrs
-                    .replace('href="/2018', `https://schedule.sxsw.com/${year}`)
+                    .replace('href="', `https://schedule.sxsw.com`)
                     .replace('"', ""),
                   time: details[1] ? details[1].childNodes[0].rawText : null,
                   title: event[0].childNodes[0].childNodes[0].rawText

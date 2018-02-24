@@ -269,7 +269,7 @@ class App extends Component {
   findArtistInfo() {
     fetch(
       `/auth/spotify/artist/${this.state.artists
-        .map(artist => artist.spotifyId)
+        .map(artist => artist.spotify_id)
         .join(",")}`,
       {
         credentials: "same-origin"
