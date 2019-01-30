@@ -350,7 +350,9 @@ class App extends Component {
       <Layout>
         <Header>
           <h1>
-            Your Spotify<br />at SXSW 2018
+            Your Spotify
+            <br />
+            at SXSW 2019
           </h1>
           <MarginBottom>
             Find all the artists in your Spotify song library that will be at
@@ -371,7 +373,8 @@ class App extends Component {
                   tab={this.state.tab}
                   type="radio"
                   value={"artists"}
-                />Artists
+                />
+                Artists
               </Tab>
               <Tab checked={this.state.tab === "concerts"}>
                 <input
@@ -381,7 +384,8 @@ class App extends Component {
                   tab={this.state.tab}
                   type="radio"
                   value={"concerts"}
-                />Concerts
+                />
+                Concerts
               </Tab>
               <Tab checked={this.state.tab === "tracks"}>
                 <input
@@ -391,7 +395,8 @@ class App extends Component {
                   tab={this.state.tab}
                   type="radio"
                   value={"tracks"}
-                />Tracks
+                />
+                Tracks
               </Tab>
             </Tabs>
           ) : (
@@ -414,7 +419,8 @@ class App extends Component {
               target="_blank"
             >
               here
-            </a>.
+            </a>
+            .
           </Footer>
         </Header>
         <main>

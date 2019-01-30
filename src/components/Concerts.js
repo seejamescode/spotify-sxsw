@@ -19,8 +19,8 @@ export default class Concerts extends Component {
         ) : null}
         {this.props.searched && this.props.concerts.length === 0 ? (
           <Message list="true">
-            Sorry! It looks like no artists in your song library are coming to
-            SXSW.
+            Sorry! It looks like concerts for artists in your song library are
+            scheduled yet.
           </Message>
         ) : null}
         <React.Fragment>
@@ -41,7 +41,9 @@ export default class Concerts extends Component {
           ) : null}{" "}
           {this.props.concerts
             .slice(5, this.props.concerts.length - 1)
-            .map((concert, index) => <Concert {...concert} key={index} />)}
+            .map((concert, index) => (
+              <Concert {...concert} key={index} />
+            ))}
         </React.Fragment>
       </Section>
     );

@@ -12,7 +12,7 @@ const MemoryStore = require("session-memory-store")(session);
 
 const app = express();
 const port = process.env.PORT || 8080;
-const year = 2018;
+const year = 2019;
 
 let keys;
 if (process.env.NODE_ENV === "production") {
